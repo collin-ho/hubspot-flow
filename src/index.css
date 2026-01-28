@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+/* React Flow overrides */
+.react-flow__node {
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Remove default border on group nodes */
+.react-flow__node-group {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Custom scrollbar for glossary */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5);
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(156, 163, 175, 0.7);
+}
