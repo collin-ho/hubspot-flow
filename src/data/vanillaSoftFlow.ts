@@ -5,7 +5,7 @@ import type { Node } from '@xyflow/react';
 // ============================================
 // LAYOUT CONFIGURATION
 // ============================================
-const STAGE_WIDTH = 420;          // Horizontal spacing between stages
+const STAGE_WIDTH = 480;          // Horizontal spacing between stages
 const STAGE_Y = 0;                // Y position for stage headers
 const CHILD_START_Y = 120;        // Where content starts below stage headers
 const NODE_HEIGHT = 95;           // Approximate height of a node
@@ -15,8 +15,14 @@ const GROUP_GAP = 40;             // Gap between group boxes
 const NODE_WIDTH = 280;           // Width of content nodes
 const GROUP_WIDTH = 360;          // Group box width
 
-// Calculate stage X positions
-const stageX = (index: number) => index * STAGE_WIDTH;
+// Calculate stage X positions - extra gaps for clarity
+const stageX = (index: number) => {
+  if (index <= 3) return index * STAGE_WIDTH;
+  if (index <= 5) return index * STAGE_WIDTH + 200; // Gap after outcomes for decision node
+  if (index === 6) return index * STAGE_WIDTH + 1300; // Extra gap before Results for BHYB routing
+  // Extra gap before routing (stage 7+) for junction
+  return index * STAGE_WIDTH + 1900;
+};
 
 // Calculate height for a group with N nodes
 const groupHeight = (nodeCount: number) =>
@@ -88,7 +94,7 @@ const OUTCOMES_PROGRESS_Y = OUTCOMES_RETRY_Y + OUTCOMES_RETRY_HEIGHT + GROUP_GAP
 const OUTCOMES_PROGRESS_HEIGHT = groupHeight(2); // NDM, DM
 
 const MEETINGS_Y = CHILD_START_Y;
-const MEETINGS_HEIGHT = groupHeight(4); // Light, Solid, BHYB, Hybrid
+const MEETINGS_HEIGHT = groupHeight(3); // Light, Solid, Hybrid (BHYB is separate track)
 
 const RVP_OWNERSHIP_Y = CHILD_START_Y;
 const RVP_INIT_Y = RVP_OWNERSHIP_Y + NODE_HEIGHT + GROUP_GAP;
@@ -96,12 +102,15 @@ const RVP_INIT_HEIGHT = groupHeight(4); // Self-Gen, Unilateral, Bilateral, Next
 const RVP_BDC_Y = RVP_INIT_Y + RVP_INIT_HEIGHT + GROUP_GAP;
 const RVP_BDC_HEIGHT = groupHeight(1); // Runs Appointment
 
-const RESULTS_SALE_Y = CHILD_START_Y;
-const RESULTS_SALE_HEIGHT = groupHeight(3); // Sale Traditional, Sale Innovative, Sale COA
-const RESULTS_SIT_Y = RESULTS_SALE_Y + RESULTS_SALE_HEIGHT + GROUP_GAP;
-const RESULTS_SIT_HEIGHT = groupHeight(6); // NFCO, NFCB, Sit DM, Sit NDM, No Sale No Traction DM, No Sale No Traction NDM
+const RESULTS_SIT_Y = CHILD_START_Y;
+const RESULTS_SIT_HEIGHT = groupHeight(7); // Sale, NFCO, NFCB, Sit DM, Sit NDM, No Traction DM, No Traction NDM
 const RESULTS_NOSIT_Y = RESULTS_SIT_Y + RESULTS_SIT_HEIGHT + GROUP_GAP;
 const RESULTS_NOSIT_HEIGHT = groupHeight(5); // Canceled, DNR, Contact, No Contact, Rescheduled
+const RESULTS_GROUP_WIDTH = 420; // Wider than standard GROUP_WIDTH for results
+
+// BHYB TRACK - Separate horizontal flow below main content
+const BHYB_TRACK_Y = RESULTS_NOSIT_Y + RESULTS_NOSIT_HEIGHT + 40; // Below all main content, raised up
+const BHYB_TRACK_HEIGHT = groupHeight(3); // A, F, NT results
 
 export const groupNodes: GroupNode[] = [
   // Call Outcomes groups
@@ -142,19 +151,27 @@ export const groupNodes: GroupNode[] = [
     data: { label: 'BDC-Scheduled', width: GROUP_WIDTH, height: RVP_BDC_HEIGHT, color: 'slate' },
     style: { zIndex: -1 },
   },
-  // Results groups
+  // Results groups - wider for clarity
   {
     id: 'group-sit',
     type: 'group',
     position: { x: stageX(6) + 10, y: RESULTS_SIT_Y },
-    data: { label: 'Sit Results', width: GROUP_WIDTH, height: RESULTS_SIT_HEIGHT, color: 'slate' },
+    data: { label: 'Sit Results', width: RESULTS_GROUP_WIDTH, height: RESULTS_SIT_HEIGHT, color: 'slate' },
     style: { zIndex: -1 },
   },
   {
     id: 'group-nosit',
     type: 'group',
     position: { x: stageX(6) + 10, y: RESULTS_NOSIT_Y },
-    data: { label: 'No-Sit Results', width: GROUP_WIDTH, height: RESULTS_NOSIT_HEIGHT, color: 'slate' },
+    data: { label: 'No-Sit Results', width: RESULTS_GROUP_WIDTH, height: RESULTS_NOSIT_HEIGHT, color: 'slate' },
+    style: { zIndex: -1 },
+  },
+  // BHYB TRACK - compact, just BHYB through RVP Decision
+  {
+    id: 'group-bhyb-track',
+    type: 'group',
+    position: { x: stageX(4) - 10, y: BHYB_TRACK_Y },
+    data: { label: 'BHYB Track', width: stageX(5) + NODE_WIDTH + 200 - stageX(4), height: BHYB_TRACK_HEIGHT, color: 'blue' },
     style: { zIndex: -1 },
   },
 ];
@@ -356,14 +373,30 @@ export const vanillaSoftNodes: FlowNode[] = [
   },
 
   // ============================================
-  // STAGE: MEETING TYPES (no groups - simple list)
+  // DECISION: Appointment Type Split (between stages 3 and 4)
+  // ============================================
+  {
+    id: 'vs-meeting-split',
+    type: 'custom',
+    position: { x: stageX(3) + STAGE_WIDTH + 60, y: OUTCOMES_PROGRESS_Y + 50 },
+    data: {
+      label: 'Appointment Type?',
+      owner: 'BDC',
+      status: 'confirmed',
+      notes: [],
+      description: 'What kind of meeting was set? Scheduled time → regular appointments. Permission to stop by → BHYB track.',
+    },
+  },
+
+  // ============================================
+  // STAGE: MEETING TYPES (scheduled appointments)
   // ============================================
   {
     id: 'vs-meeting-light',
     type: 'custom',
     position: inGroup(4, MEETINGS_Y, 0),
     data: {
-      label: 'Light Appointment',
+      label: 'Lite Appointment',
       owner: 'BDC -> RVP',
       status: 'confirmed',
       notes: [],
@@ -383,27 +416,28 @@ export const vanillaSoftNodes: FlowNode[] = [
     },
   },
   {
-    id: 'vs-meeting-bhyb',
-    type: 'custom',
-    position: inGroup(4, MEETINGS_Y, 2),
-    data: {
-      label: 'BHYB',
-      owner: 'BDC -> RVP',
-      status: 'confirmed',
-      notes: [],
-      description: 'Reverse Hybrid. Permission to stop by, no specific time.',
-    },
-  },
-  {
     id: 'vs-meeting-hybrid',
     type: 'custom',
-    position: inGroup(4, MEETINGS_Y, 3),
+    position: inGroup(4, MEETINGS_Y, 2),
     data: {
       label: 'Hybrid',
       owner: 'RVP + BDC',
       status: 'confirmed',
       notes: [],
       description: 'RVP touches first, requests BDC follow-up.',
+    },
+  },
+  // BHYB - entry point to BHYB track (positioned at start of track)
+  {
+    id: 'vs-bhyb',
+    type: 'custom',
+    position: { x: stageX(4) + 30, y: BHYB_TRACK_Y + 45 },
+    data: {
+      label: 'BHYB',
+      owner: 'BDC -> RVP',
+      status: 'confirmed',
+      notes: [],
+      description: 'Be Here Your Best. Permission to stop by, no specific time. Has separate result path.',
     },
   },
 
@@ -472,6 +506,13 @@ export const vanillaSoftNodes: FlowNode[] = [
       description: 'Follow-up for prospects in pipeline.',
     },
   },
+  // Spine junction for RVP-Initiated edges to converge on vertical line
+  {
+    id: 'vs-rvp-init-spine',
+    type: 'spine',
+    position: { x: stageX(6) - 350, y: RVP_INIT_Y + groupHeight(4) / 2 },
+    data: { color: 'slate' },
+  },
   // BDC-SCHEDULED GROUP
   {
     id: 'vs-rvp-runs-appt',
@@ -483,6 +524,137 @@ export const vanillaSoftNodes: FlowNode[] = [
       status: 'confirmed',
       notes: [],
       description: 'RVP goes to the BDC-scheduled appointment.',
+    },
+  },
+
+  // ============================================
+  // BHYB TRACK NODES - Horizontal flow below main content
+  // ============================================
+  // BHYB Results (in track, stage 5 area)
+  {
+    id: 'vs-bhyb-a',
+    type: 'custom',
+    position: { x: stageX(5) + 30, y: BHYB_TRACK_Y + 45 },
+    data: {
+      label: 'BHYB-A',
+      owner: 'RVP',
+      status: 'confirmed',
+      notes: [],
+      description: 'BHYB Appointment - Got a real appointment. Goes to normal sit flow.',
+    },
+  },
+  {
+    id: 'vs-bhyb-f',
+    type: 'custom',
+    position: { x: stageX(5) + 30, y: BHYB_TRACK_Y + 45 + NODE_HEIGHT + NODE_GAP },
+    data: {
+      label: 'BHYB-F',
+      owner: 'RVP',
+      status: 'confirmed',
+      notes: [],
+      description: 'BHYB Follow up - Needs follow up. RVP decides routing.',
+    },
+  },
+  {
+    id: 'vs-bhyb-nt',
+    type: 'custom',
+    position: { x: stageX(5) + 30, y: BHYB_TRACK_Y + 45 + (NODE_HEIGHT + NODE_GAP) * 2 },
+    data: {
+      label: 'BHYB-NT',
+      owner: 'RVP',
+      status: 'confirmed',
+      notes: [],
+      description: 'BHYB No Touch - No contact made. RVP decides routing.',
+    },
+  },
+  // BHYB ROUTING - Positioned near the junction (between Sit/No-Sit Results)
+  // RVP Decision point for F/NT - pushed way back for spacing
+  {
+    id: 'vs-bhyb-decision',
+    type: 'custom',
+    position: { x: stageX(6) - 1150, y: RESULTS_SIT_Y + RESULTS_SIT_HEIGHT + GROUP_GAP / 2 - NODE_HEIGHT / 2 },
+    data: {
+      label: 'RVP Decision',
+      owner: 'RVP',
+      status: 'confirmed',
+      notes: [],
+      description: 'RVP decides: route to BDC (Next Step/Light) or keep (Uni/Bi/Call/Email/BTS). All paths lead back to Sit Results except BTS.',
+    },
+  },
+
+  // Route nodes - spaced out from RVP Decision
+  {
+    id: 'vs-bhyb-route-bdc',
+    type: 'mini',
+    position: { x: stageX(6) - 850, y: RESULTS_SIT_Y + RESULTS_SIT_HEIGHT - 30 },
+    data: { label: 'BDC Route', owner: 'BDC', color: 'slate' },
+  },
+  {
+    id: 'vs-bhyb-route-rvp',
+    type: 'mini',
+    position: { x: stageX(6) - 850, y: RESULTS_SIT_Y + RESULTS_SIT_HEIGHT + GROUP_GAP + 10 },
+    data: { label: 'RVP Route', owner: 'RVP', color: 'blue' },
+  },
+
+  // BDC Route mini nodes - spaced from route nodes
+  {
+    id: 'vs-bhyb-mini-nextstep',
+    type: 'mini',
+    position: { x: stageX(6) - 600, y: RESULTS_SIT_Y + RESULTS_SIT_HEIGHT - 45 },
+    data: { label: 'Next Step', owner: 'BDC', color: 'slate' },
+  },
+  {
+    id: 'vs-bhyb-mini-nextstep-light',
+    type: 'mini',
+    position: { x: stageX(6) - 600, y: RESULTS_SIT_Y + RESULTS_SIT_HEIGHT - 10 },
+    data: { label: 'Next Step Lite', owner: 'BDC', color: 'slate' },
+  },
+
+  // RVP Route mini nodes - Unilateral/Bilateral/Call/Email grouped, BTS separate at bottom
+  {
+    id: 'vs-bhyb-mini-unilateral',
+    type: 'mini',
+    position: { x: stageX(6) - 600, y: RESULTS_SIT_Y + RESULTS_SIT_HEIGHT + GROUP_GAP - 5 },
+    data: { label: 'Unilateral', owner: 'RVP', color: 'blue' },
+  },
+  {
+    id: 'vs-bhyb-mini-bilateral',
+    type: 'mini',
+    position: { x: stageX(6) - 600, y: RESULTS_SIT_Y + RESULTS_SIT_HEIGHT + GROUP_GAP + 30 },
+    data: { label: 'Bilateral', owner: 'RVP', color: 'blue' },
+  },
+  {
+    id: 'vs-bhyb-mini-callemail',
+    type: 'mini',
+    position: { x: stageX(6) - 600, y: RESULTS_SIT_Y + RESULTS_SIT_HEIGHT + GROUP_GAP + 65 },
+    data: { label: 'Call/Email', owner: 'RVP', color: 'blue' },
+  },
+
+  // BTS stays with other RVP mini nodes
+  {
+    id: 'vs-bhyb-mini-bts',
+    type: 'mini',
+    position: { x: stageX(6) - 600, y: RESULTS_SIT_Y + RESULTS_SIT_HEIGHT + GROUP_GAP + 100 },
+    data: { label: 'BTS', owner: 'RVP', color: 'amber' },
+  },
+  // Main Junction for BHYB routes → Results (both sit and no-sit)
+  {
+    id: 'vs-bhyb-results-junction',
+    type: 'spine',
+    position: { x: stageX(6) - 350, y: RESULTS_SIT_Y + RESULTS_SIT_HEIGHT + GROUP_GAP / 2 - 4 },
+    data: { color: 'blue' },
+  },
+  // Unknown outcome node for Call/Email - positioned below No-Sit Results
+  {
+    id: 'vs-callemail-unknown',
+    type: 'custom',
+    position: { x: stageX(6) + 30, y: RESULTS_NOSIT_Y + RESULTS_NOSIT_HEIGHT + 20 },
+    data: {
+      label: '?',
+      owner: 'RVP',
+      status: 'open-question',
+      notes: [],
+      description: 'Call/Email outcome unknown - could lead to sit or no-sit depending on response.',
     },
   },
 
@@ -531,11 +703,11 @@ export const vanillaSoftNodes: FlowNode[] = [
     type: 'custom',
     position: inGroup(6, RESULTS_SIT_Y, 3),
     data: {
-      label: 'No Sale - DM',
+      label: 'No Traction DM',
       owner: 'RVP',
       status: 'confirmed',
       notes: [],
-      description: 'Proposed to DM, they said NO.',
+      description: 'Met with Decision Maker, no momentum toward closing.',
     },
   },
   {
@@ -543,11 +715,35 @@ export const vanillaSoftNodes: FlowNode[] = [
     type: 'custom',
     position: inGroup(6, RESULTS_SIT_Y, 4),
     data: {
-      label: 'No Sale - NDM',
+      label: 'No Traction NDM',
       owner: 'RVP',
       status: 'confirmed',
       notes: [],
-      description: 'Proposed to NDM, they said no.',
+      description: 'Met with Non-Decision Maker, no momentum toward closing.',
+    },
+  },
+  {
+    id: 'vs-result-nfco',
+    type: 'custom',
+    position: inGroup(6, RESULTS_SIT_Y, 5),
+    data: {
+      label: 'NFCO',
+      owner: 'RVP',
+      status: 'confirmed',
+      notes: [],
+      description: 'Not Fit for Cogent Other - Disqualified for non-revenue reasons (not private, international HQ, etc).',
+    },
+  },
+  {
+    id: 'vs-result-nfcb',
+    type: 'custom',
+    position: inGroup(6, RESULTS_SIT_Y, 6),
+    data: {
+      label: 'NFCB',
+      owner: 'RVP',
+      status: 'confirmed',
+      notes: [],
+      description: 'Not Fit for Cogent Below - Disqualified for being below thresholds (revenue/employees).',
     },
   },
   // NO-SIT GROUP
@@ -601,24 +797,24 @@ export const vanillaSoftNodes: FlowNode[] = [
   },
 
   // ============================================
-  // STAGE: ROUTING
+  // STAGE: ROUTING - Stacked vertically
   // ============================================
   {
-    id: 'vs-admin',
+    id: 'vs-end-pipeline',
     type: 'custom',
     position: { x: stageX(7) + 30, y: CHILD_START_Y },
     data: {
-      label: 'Admin Processing',
+      label: '⬤ END PIPELINE',
       owner: 'Admin',
       status: 'confirmed',
       notes: [],
-      description: 'Final sales/no-sales processed here.',
+      description: 'Terminal state. Lead exits pipeline here - either closed (Sale) or disqualified (NFCO/NFCB/No Traction).',
     },
   },
   {
     id: 'vs-route-bdc',
     type: 'custom',
-    position: { x: stageX(7) + 30, y: CHILD_START_Y + NODE_HEIGHT + NODE_GAP + 40 },
+    position: { x: stageX(7) + 30, y: CHILD_START_Y + NODE_HEIGHT + NODE_GAP + 30 },
     data: {
       label: 'Back to BDC',
       owner: 'BDC',
@@ -630,7 +826,7 @@ export const vanillaSoftNodes: FlowNode[] = [
   {
     id: 'vs-route-rvp',
     type: 'custom',
-    position: { x: stageX(7) + 30, y: CHILD_START_Y + (NODE_HEIGHT + NODE_GAP) * 2 + 100 },
+    position: { x: stageX(7) + 30, y: CHILD_START_Y + (NODE_HEIGHT + NODE_GAP + 30) * 2 },
     data: {
       label: 'Back to RVP',
       owner: 'RVP',
@@ -642,13 +838,26 @@ export const vanillaSoftNodes: FlowNode[] = [
   {
     id: 'vs-loop',
     type: 'custom',
-    position: { x: stageX(7) + 30, y: CHILD_START_Y + (NODE_HEIGHT + NODE_GAP) * 3 + 160 },
+    position: { x: stageX(7) + 30, y: CHILD_START_Y + (NODE_HEIGHT + NODE_GAP + 30) * 3 },
     data: {
       label: 'Loop Continue',
       owner: 'System',
       status: 'confirmed',
       notes: [],
       description: 'Records loop until SALE or NO SALE.',
+    },
+  },
+  // Junction node - between Results and Routing, aligned with middle of Sit Results
+  {
+    id: 'vs-terminal-junction',
+    type: 'custom',
+    position: { x: stageX(6) + STAGE_WIDTH + 50, y: RESULTS_SIT_Y + 280 },
+    data: {
+      label: '●',
+      owner: '',
+      status: 'confirmed',
+      notes: [],
+      description: 'Junction - terminal outcomes converge here before End Pipeline.',
     },
   },
 ];
@@ -660,6 +869,8 @@ const EDGE_STYLES = {
   mainSpine: { strokeWidth: 2, stroke: '#64748b' },  // slate-500 - stage connections
   forward: { strokeWidth: 1, stroke: '#cbd5e1' },    // slate-300 - very light
   success: { strokeWidth: 2, stroke: '#10b981' },    // emerald-500 - SALE path
+  bhyb: { strokeWidth: 2, stroke: '#3b82f6' },       // blue-500 - BHYB track
+  bts: { strokeWidth: 2, stroke: '#ef4444' },        // red-500 - BTS back to queue
 };
 
 // ============================================
@@ -677,9 +888,70 @@ export const vanillaSoftEdges: FlowEdge[] = [
 
   // GROUP CONNECTIONS - strong arrows showing where each group leads
   { id: 'e-retry-bdc', source: 'group-retry', target: 'vs-bdc-call', style: EDGE_STYLES.mainSpine, label: 'RETRY', labelStyle: { fontWeight: 700, fontSize: 11 } },
-  { id: 'e-progress-meetings', source: 'group-progress', target: 'group-meetings', style: EDGE_STYLES.mainSpine, label: 'ADVANCE', labelStyle: { fontWeight: 700, fontSize: 11 } },
+  // Progress → Decision split
+  { id: 'e-progress-split', source: 'group-progress', target: 'vs-meeting-split', style: EDGE_STYLES.success, label: 'ADVANCE', labelStyle: { fontWeight: 700, fontSize: 11 } },
+  // Decision split → Scheduled appointments OR BHYB
+  { id: 'e-split-meetings', source: 'vs-meeting-split', target: 'group-meetings', style: EDGE_STYLES.success, label: 'SCHEDULED', labelStyle: { fontWeight: 700, fontSize: 10 } },
 
-  // SUCCESS PATH
-  { id: 'e-runappt-sale', source: 'vs-rvp-runs-appt', target: 'vs-result-sale', style: EDGE_STYLES.success },
-  { id: 'e-sale-admin', source: 'vs-result-sale', target: 'vs-admin', style: EDGE_STYLES.success },
+  // RVP TO RESULTS - Runs Appointment leads to all Sit results
+  { id: 'e-runappt-sit', source: 'vs-rvp-runs-appt', target: 'group-sit', style: EDGE_STYLES.success },
+
+  // RVP-INITIATED → Spine (converge on vertical line) → Main junction
+  { id: 'e-selfgen-spine', source: 'vs-rvp-selfgen', target: 'vs-rvp-init-spine', type: 'tree', style: EDGE_STYLES.mainSpine },
+  { id: 'e-unilateral-spine', source: 'vs-rvp-unilateral', target: 'vs-rvp-init-spine', type: 'tree', style: EDGE_STYLES.mainSpine },
+  { id: 'e-bilateral-spine', source: 'vs-rvp-bilateral', target: 'vs-rvp-init-spine', type: 'tree', style: EDGE_STYLES.mainSpine },
+  { id: 'e-nextstep-spine', source: 'vs-rvp-nextstep', target: 'vs-rvp-init-spine', type: 'tree', style: EDGE_STYLES.mainSpine },
+  // Spine → Main BHYB junction (vertical line down)
+  { id: 'e-rvp-spine-junction', source: 'vs-rvp-init-spine', target: 'vs-bhyb-results-junction', style: EDGE_STYLES.mainSpine },
+
+  // BHYB TRACK - separate flow path
+  // Entry: Split decision leads to BHYB track
+  { id: 'e-split-bhyb', source: 'vs-meeting-split', target: 'vs-bhyb', style: EDGE_STYLES.bhyb, label: 'STOP BY OK', labelStyle: { fontWeight: 700, fontSize: 10 } },
+  // BHYB → Results
+  { id: 'e-bhyb-a', source: 'vs-bhyb', target: 'vs-bhyb-a', style: EDGE_STYLES.bhyb },
+  { id: 'e-bhyb-f', source: 'vs-bhyb', target: 'vs-bhyb-f', style: EDGE_STYLES.bhyb },
+  { id: 'e-bhyb-nt', source: 'vs-bhyb', target: 'vs-bhyb-nt', style: EDGE_STYLES.bhyb },
+  // BHYB-A → Sit Results (got an appointment, normal flow)
+  { id: 'e-bhyb-a-sit', source: 'vs-bhyb-a', target: 'group-sit', style: EDGE_STYLES.success },
+  // BHYB F/NT → RVP Decision
+  { id: 'e-bhyb-f-decision', source: 'vs-bhyb-f', target: 'vs-bhyb-decision', style: EDGE_STYLES.bhyb },
+  { id: 'e-bhyb-nt-decision', source: 'vs-bhyb-nt', target: 'vs-bhyb-decision', style: EDGE_STYLES.bhyb },
+
+  // RVP Decision → Route nodes (cleaner flow with intermediate grouping)
+  { id: 'e-decision-bdc-route', source: 'vs-bhyb-decision', target: 'vs-bhyb-route-bdc', style: EDGE_STYLES.bhyb },
+  { id: 'e-decision-rvp-route', source: 'vs-bhyb-decision', target: 'vs-bhyb-route-rvp', style: EDGE_STYLES.bhyb },
+
+  // BDC Route → BDC mini nodes
+  { id: 'e-bdc-route-nextstep', source: 'vs-bhyb-route-bdc', target: 'vs-bhyb-mini-nextstep', style: EDGE_STYLES.bhyb },
+  { id: 'e-bdc-route-nextstep-light', source: 'vs-bhyb-route-bdc', target: 'vs-bhyb-mini-nextstep-light', style: EDGE_STYLES.bhyb },
+
+  // RVP Route → RVP mini nodes
+  { id: 'e-rvp-route-unilateral', source: 'vs-bhyb-route-rvp', target: 'vs-bhyb-mini-unilateral', style: EDGE_STYLES.bhyb },
+  { id: 'e-rvp-route-bilateral', source: 'vs-bhyb-route-rvp', target: 'vs-bhyb-mini-bilateral', style: EDGE_STYLES.bhyb },
+  { id: 'e-rvp-route-callemail', source: 'vs-bhyb-route-rvp', target: 'vs-bhyb-mini-callemail', style: EDGE_STYLES.bhyb },
+  { id: 'e-rvp-route-bts', source: 'vs-bhyb-route-rvp', target: 'vs-bhyb-mini-bts', style: EDGE_STYLES.bhyb },
+
+  // Mini nodes → Junction using tree edges (creates shared vertical spine)
+  { id: 'e-mini-nextstep-junction', source: 'vs-bhyb-mini-nextstep', target: 'vs-bhyb-results-junction', type: 'tree', style: EDGE_STYLES.bhyb },
+  { id: 'e-mini-nextstep-light-junction', source: 'vs-bhyb-mini-nextstep-light', target: 'vs-bhyb-results-junction', type: 'tree', style: EDGE_STYLES.bhyb },
+  { id: 'e-mini-unilateral-junction', source: 'vs-bhyb-mini-unilateral', target: 'vs-bhyb-results-junction', type: 'tree', style: EDGE_STYLES.bhyb },
+  { id: 'e-mini-bilateral-junction', source: 'vs-bhyb-mini-bilateral', target: 'vs-bhyb-results-junction', type: 'tree', style: EDGE_STYLES.bhyb },
+
+  // Call/Email → Unknown outcome (separate from the main junction)
+  { id: 'e-mini-callemail-unknown', source: 'vs-bhyb-mini-callemail', target: 'vs-callemail-unknown', style: EDGE_STYLES.bhyb },
+
+  // BHYB Junction → Both Sit Results and No-Sit Results
+  { id: 'e-bhyb-junction-sit', source: 'vs-bhyb-results-junction', target: 'group-sit', style: EDGE_STYLES.bhyb },
+  { id: 'e-bhyb-junction-nosit', source: 'vs-bhyb-results-junction', target: 'group-nosit', style: EDGE_STYLES.bhyb },
+
+  // BTS → Queue (red path routes below everything using custom edge)
+  { id: 'e-bts-queue', source: 'vs-bhyb-mini-bts', target: 'vs-queue', type: 'bts', style: EDGE_STYLES.bts, label: 'RESTART', labelStyle: { fontWeight: 700, fontSize: 10, fill: '#ef4444' } },
+
+  // END PIPELINE - Terminal outcomes converge at junction, then to End Pipeline
+  { id: 'e-sale-junction', source: 'vs-result-sale', target: 'vs-terminal-junction', style: EDGE_STYLES.success },
+  { id: 'e-nosale-dm-junction', source: 'vs-result-nosale-dm', target: 'vs-terminal-junction', style: EDGE_STYLES.success },
+  { id: 'e-nosale-ndm-junction', source: 'vs-result-nosale-ndm', target: 'vs-terminal-junction', style: EDGE_STYLES.success },
+  { id: 'e-nfco-junction', source: 'vs-result-nfco', target: 'vs-terminal-junction', style: EDGE_STYLES.success },
+  { id: 'e-nfcb-junction', source: 'vs-result-nfcb', target: 'vs-terminal-junction', style: EDGE_STYLES.success },
+  { id: 'e-junction-end', source: 'vs-terminal-junction', target: 'vs-end-pipeline', style: EDGE_STYLES.success },
 ];

@@ -98,24 +98,74 @@ export function Glossary({ isOpen, onToggle }: GlossaryProps) {
 
         {/* Acronym List */}
         <div className="flex-1 overflow-y-auto scrollbar-thin p-4">
-          {Object.entries(groupedAcronyms).map(([category, items]) => (
-            <div key={category} className="mb-6">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                {categoryLabels[category as Acronym['category']]}
-              </h3>
-              <div className="space-y-2">
-                {items.map(acronym => (
-                  <div
-                    key={acronym.term}
-                    className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                  >
-                    <div className="font-medium text-gray-900">{acronym.term}</div>
-                    <div className="text-sm text-gray-600 mt-1">{acronym.definition}</div>
-                  </div>
-                ))}
+          {Object.entries(groupedAcronyms).map(([category, items]) => {
+            // Check if this category has sub-groups
+            const hasGroups = items.some(a => a.group);
+
+            if (hasGroups) {
+              // Group items by their group field
+              const subGroups: Record<string, Acronym[]> = {};
+              for (const item of items) {
+                const groupName = item.group || 'Other';
+                if (!subGroups[groupName]) {
+                  subGroups[groupName] = [];
+                }
+                subGroups[groupName].push(item);
+              }
+
+              // Define group order for result codes
+              const groupOrder = ['Cancelled', 'No Sit', 'Sit', 'No Sale', 'Sale', 'Other'];
+              const sortedGroups = Object.keys(subGroups).sort(
+                (a, b) => groupOrder.indexOf(a) - groupOrder.indexOf(b)
+              );
+
+              return (
+                <div key={category} className="mb-6">
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                    {categoryLabels[category as Acronym['category']]}
+                  </h3>
+                  {sortedGroups.map(groupName => (
+                    <div key={groupName} className="mb-4">
+                      <h4 className="text-xs font-medium text-blue-600 mb-2 pl-1">
+                        {groupName}
+                      </h4>
+                      <div className="space-y-2">
+                        {subGroups[groupName].map(acronym => (
+                          <div
+                            key={acronym.term}
+                            className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors ml-2"
+                          >
+                            <div className="font-medium text-gray-900">{acronym.term}</div>
+                            <div className="text-sm text-gray-600 mt-1">{acronym.definition}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            }
+
+            // No sub-groups, render flat list
+            return (
+              <div key={category} className="mb-6">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                  {categoryLabels[category as Acronym['category']]}
+                </h3>
+                <div className="space-y-2">
+                  {items.map(acronym => (
+                    <div
+                      key={acronym.term}
+                      className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="font-medium text-gray-900">{acronym.term}</div>
+                      <div className="text-sm text-gray-600 mt-1">{acronym.definition}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {filteredAcronyms.length === 0 && (
             <div className="text-center text-gray-500 py-8">
               No matching terms found

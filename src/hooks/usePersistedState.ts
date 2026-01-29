@@ -2,10 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import type { PersistedState, NodeNote, NodeStatus } from '../types';
 
 const STORAGE_KEY = 'hubspot-flow-state';
+const LAYOUT_VERSION = 28; // Bump this to reset positions on layout changes
 
 const defaultState: PersistedState = {
   nodeNotes: {},
   nodeStatuses: {},
+  nodePositions: {},
   lastUpdated: new Date().toISOString(),
 };
 
@@ -13,12 +15,22 @@ function loadState(): PersistedState {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      // Clear positions if layout version changed (keeps notes/statuses)
+      const storedVersion = parsed.layoutVersion || 1;
+      const shouldResetPositions = storedVersion < LAYOUT_VERSION;
+
+      return {
+        ...defaultState,
+        ...parsed,
+        nodePositions: shouldResetPositions ? {} : (parsed.nodePositions || {}),
+        layoutVersion: LAYOUT_VERSION,
+      };
     }
   } catch (e) {
     console.error('Failed to load persisted state:', e);
   }
-  return defaultState;
+  return { ...defaultState, layoutVersion: LAYOUT_VERSION };
 }
 
 function saveState(state: PersistedState): void {
@@ -96,6 +108,20 @@ export function usePersistedState() {
     }));
   }, []);
 
+  const getPositionForNode = useCallback((nodeId: string): { x: number; y: number } | undefined => {
+    return state.nodePositions[nodeId];
+  }, [state.nodePositions]);
+
+  const setPositionForNode = useCallback((nodeId: string, position: { x: number; y: number }) => {
+    setState(prev => ({
+      ...prev,
+      nodePositions: {
+        ...prev.nodePositions,
+        [nodeId]: position,
+      },
+    }));
+  }, []);
+
   const exportState = useCallback(() => {
     return state;
   }, [state]);
@@ -116,6 +142,8 @@ export function usePersistedState() {
     deleteNote,
     getStatusForNode,
     setStatusForNode,
+    getPositionForNode,
+    setPositionForNode,
     exportState,
     importState,
     clearState,

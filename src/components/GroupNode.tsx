@@ -6,13 +6,14 @@ export interface GroupNodeData extends Record<string, unknown> {
   label: string;
   width: number;
   height: number;
-  color?: 'slate' | 'orange' | 'green' | 'purple' | 'teal' | 'red';
+  color?: 'slate' | 'orange' | 'green' | 'purple' | 'teal' | 'red' | 'blue';
 }
 
 type GroupNodeProps = NodeProps<Node<GroupNodeData, 'group'>>;
 
 const colorMap: Record<string, { bg: string; border: string; label: string }> = {
   slate: { bg: 'bg-slate-300/50', border: 'border-slate-500', label: 'text-slate-700 bg-slate-300' },
+  blue: { bg: 'bg-blue-200/50', border: 'border-blue-500', label: 'text-blue-700 bg-blue-200' },
 };
 
 function GroupNodeComponent({ data }: GroupNodeProps) {

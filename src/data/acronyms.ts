@@ -14,7 +14,7 @@ export const acronyms: Acronym[] = [
   },
   {
     term: 'BDC',
-    definition: 'Business Development Center - Team that handles initial outreach, appointment setting, and lead qualification.',
+    definition: 'Business Development Coordinator - Handles initial outreach, appointment setting, and lead qualification.',
     category: 'role',
   },
   {
@@ -31,87 +31,139 @@ export const acronyms: Acronym[] = [
   // Meeting Types
   {
     term: 'BHYB',
-    definition: 'Be Here Your Best - A specific meeting type in the sales process.',
+    definition: 'Permission to stop by with no specific time. Acronym meaning unknown.',
     category: 'meeting-type',
   },
   {
-    term: 'Light',
-    definition: 'Light Meeting - Lower intensity meeting type, typically informational.',
+    term: 'Lite',
+    definition: 'Lite Appointment - Meeting with NDM or vague time. Client may not expect visit.',
     category: 'meeting-type',
   },
   {
     term: 'Solid',
-    definition: 'Solid Meeting - Standard sales meeting with full presentation.',
+    definition: 'Solid Appointment - Meeting with Decision Maker at a specific time. Client expects visit.',
     category: 'meeting-type',
   },
   {
     term: 'Hybrid',
-    definition: 'Hybrid Meeting - Combination meeting type with mixed format.',
+    definition: '? - Meeting type (details unknown).',
+    category: 'meeting-type',
+  },
+  {
+    term: 'Reverse Hybrid',
+    definition: '? - Meeting type (details unknown).',
     category: 'meeting-type',
   },
 
-  // Lead Types
+  // RVP Activity Types
   {
     term: 'Self-gen',
-    definition: 'Self-generated lead - Lead sourced by the sales rep themselves.',
+    definition: 'Self-generated - RVP sources and sets their own appointment.',
     category: 'lead-type',
   },
   {
     term: 'Unilateral',
-    definition: 'Unilateral lead - Lead from a single source/referral.',
+    definition: 'Unilateral - RVP shows up without client knowledge. Cold call/drop-in.',
     category: 'lead-type',
   },
   {
     term: 'Bilateral',
-    definition: 'Bilateral lead - Lead from multiple sources or mutual referral.',
+    definition: 'Bilateral - Both parties know the RVP is coming. Scheduled follow-up.',
     category: 'lead-type',
   },
 
-  // Result Codes
+  // Result Codes - Cancelled
   {
-    term: 'Sale',
-    definition: 'Successful sale completed.',
+    term: 'Cancelled',
+    definition: 'Appointment was cancelled before RVP went.',
     category: 'result-code',
+    group: 'Cancelled',
   },
+
+  // Result Codes - No Sits (RVP showed up but meeting didn't happen)
+  {
+    term: 'DNR',
+    definition: 'Did Not Respond - Prospect did not respond when RVP arrived.',
+    category: 'result-code',
+    group: 'No Sit',
+  },
+  {
+    term: 'Contact',
+    definition: 'Made contact with prospect but they refused to sit for the meeting.',
+    category: 'result-code',
+    group: 'No Sit',
+  },
+  {
+    term: 'No Contact',
+    definition: 'Prospect was a no-show, RVP could not make contact.',
+    category: 'result-code',
+    group: 'No Sit',
+  },
+  {
+    term: 'Rescheduled',
+    definition: 'Appointment was pushed to a new date.',
+    category: 'result-code',
+    group: 'No Sit',
+  },
+
+  // Result Codes - Sits (meeting happened)
   {
     term: 'Sit DM',
     definition: 'Sat with Decision Maker - Meeting completed with the decision maker present.',
     category: 'result-code',
+    group: 'Sit',
   },
   {
     term: 'Sit NDM',
     definition: 'Sat with Non-Decision Maker - Meeting completed but DM was not present.',
     category: 'result-code',
+    group: 'Sit',
   },
   {
-    term: 'No Sale - MDM',
-    definition: 'No Sale - Met Decision Maker. Meeting happened with DM but no sale closed.',
+    term: 'NFCO',
+    definition: 'Not Fit for Cogent Other - Disqualified for non-revenue reasons (e.g., not private, international HQ, etc.).',
     category: 'result-code',
+    group: 'Sit',
   },
   {
-    term: 'No Sale - MNDM',
-    definition: 'No Sale - Met Non-Decision Maker. Meeting happened but DM was not present.',
+    term: 'NFCB',
+    definition: 'Not Fit for Cogent Below - Disqualified for being below thresholds (not enough revenue or employees).',
     category: 'result-code',
+    group: 'Sit',
+  },
+
+  // Result Codes - No Sale (sat, fit, but didn't close)
+  {
+    term: 'No Traction DM',
+    definition: 'No Sale - Met with Decision Maker but no momentum toward closing.',
+    category: 'result-code',
+    group: 'No Sale',
   },
   {
-    term: 'No Sit',
-    definition: 'No Sit - Appointment was scheduled but meeting did not happen (no-show, cancelled, etc.).',
+    term: 'No Traction NDM',
+    definition: 'No Sale - Met with Non-Decision Maker, no momentum toward closing.',
     category: 'result-code',
+    group: 'No Sale',
+  },
+
+  // Result Codes - Sales (closed, by product type)
+  {
+    term: 'Sale - Traditional',
+    definition: 'Successful sale of Traditional product.',
+    category: 'result-code',
+    group: 'Sale',
   },
   {
-    term: 'Callback',
-    definition: 'Lead requested a callback at a later time.',
+    term: 'Sale - Innovative',
+    definition: 'Successful sale of Innovative product.',
     category: 'result-code',
+    group: 'Sale',
   },
   {
-    term: 'Reschedule',
-    definition: 'Appointment needs to be rescheduled.',
+    term: 'Sale - Coaching',
+    definition: 'Successful sale of Coaching product.',
     category: 'result-code',
-  },
-  {
-    term: 'DQ',
-    definition: 'Disqualified - Lead does not meet qualification criteria.',
-    category: 'result-code',
+    group: 'Sale',
   },
 
   // Other Terms

@@ -14,6 +14,10 @@ import type { FlowNode, ViewMode, NodeStatus, FlowNodeData, AnyFlowNode } from '
 import { CustomNode } from './CustomNode';
 import { StageNode } from './StageNode';
 import { GroupNode } from './GroupNode';
+import { MiniNode } from './MiniNode';
+import { SpineNode } from './SpineNode';
+import { TreeEdge } from './TreeEdge';
+import { BtsEdge } from './BtsEdge';
 import { vanillaSoftNodes, vanillaSoftEdges, stageNodes, groupNodes as vanillaSoftGroups } from '../data/vanillaSoftFlow';
 import { hubspotNodes, hubspotEdges } from '../data/hubspotFlow';
 
@@ -21,20 +25,31 @@ interface FlowCanvasProps {
   viewMode: ViewMode;
   nodeNotes: Record<string, { length: number }>;
   nodeStatuses: Record<string, NodeStatus>;
+  nodePositions: Record<string, { x: number; y: number }>;
   onNodeClick: (node: FlowNode) => void;
+  onNodePositionChange: (nodeId: string, position: { x: number; y: number }) => void;
 }
 
 const nodeTypes = {
   custom: CustomNode,
   stage: StageNode,
   group: GroupNode,
+  mini: MiniNode,
+  spine: SpineNode,
+} as const;
+
+const edgeTypes = {
+  tree: TreeEdge,
+  bts: BtsEdge,
 } as const;
 
 export function FlowCanvas({
   viewMode,
   nodeNotes,
   nodeStatuses,
+  nodePositions,
   onNodeClick,
+  onNodePositionChange,
 }: FlowCanvasProps) {
   const baseChildNodes = viewMode === 'vanillasoft' ? vanillaSoftNodes : hubspotNodes;
   const baseStageNodes = viewMode === 'vanillasoft' ? stageNodes : [];
@@ -45,15 +60,25 @@ export function FlowCanvas({
   const initialNodes = useMemo(() => {
     const childNodes = baseChildNodes.map(node => ({
       ...node,
+      position: nodePositions[node.id] || node.position,
       data: {
         ...node.data,
         notes: nodeNotes[node.id] ? Array(nodeNotes[node.id].length).fill({}) : [],
         status: nodeStatuses[node.id] || node.data.status,
       } as FlowNodeData,
     }));
+    // Apply saved positions to stage and group nodes too
+    const stageNodesWithPositions = baseStageNodes.map(node => ({
+      ...node,
+      position: nodePositions[node.id] || node.position,
+    }));
+    const groupNodesWithPositions = baseGroupNodes.map(node => ({
+      ...node,
+      position: nodePositions[node.id] || node.position,
+    }));
     // Groups render first (background), then stages, then child nodes on top
-    return [...baseGroupNodes, ...baseStageNodes, ...childNodes] as AnyFlowNode[];
-  }, [baseChildNodes, baseStageNodes, baseGroupNodes, nodeNotes, nodeStatuses]);
+    return [...groupNodesWithPositions, ...stageNodesWithPositions, ...childNodes] as AnyFlowNode[];
+  }, [baseChildNodes, baseStageNodes, baseGroupNodes, nodeNotes, nodeStatuses, nodePositions]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, , onEdgesChange] = useEdgesState(baseEdges);
@@ -90,6 +115,13 @@ export function FlowCanvas({
     [onNodeClick]
   );
 
+  const handleNodeDragStop = useCallback(
+    (_event: React.MouseEvent, node: AnyFlowNode) => {
+      onNodePositionChange(node.id, node.position);
+    },
+    [onNodePositionChange]
+  );
+
   return (
     <div className="w-full h-full">
       <ReactFlow
@@ -98,7 +130,9 @@ export function FlowCanvas({
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeClick={handleNodeClick as never}
+        onNodeDragStop={handleNodeDragStop as never}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         fitView
         fitViewOptions={{ padding: 0.15 }}
         minZoom={0.2}

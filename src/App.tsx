@@ -19,6 +19,7 @@ function App() {
     deleteNote,
     getStatusForNode,
     setStatusForNode,
+    setPositionForNode,
   } = usePersistedState();
 
   const { nodes, edges } = useFlowData(viewMode);
@@ -94,7 +95,9 @@ function App() {
         viewMode={viewMode}
         nodeNotes={nodeNotesMap}
         nodeStatuses={persistedState.nodeStatuses}
+        nodePositions={persistedState.nodePositions}
         onNodeClick={handleNodeClick}
+        onNodePositionChange={setPositionForNode}
       />
 
       {/* Glossary Toggle Button */}

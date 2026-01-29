@@ -6,6 +6,7 @@ export interface Acronym {
   term: string;
   definition: string;
   category: 'role' | 'meeting-type' | 'result-code' | 'lead-type' | 'other';
+  group?: string; // Sub-grouping within a category (e.g., 'No Sit', 'Sit', 'No Sale', 'Sale' for result codes)
 }
 
 export interface NodeNote {
@@ -39,6 +40,8 @@ export type ViewMode = 'vanillasoft' | 'hubspot';
 export interface PersistedState {
   nodeNotes: Record<string, NodeNote[]>;
   nodeStatuses: Record<string, NodeStatus>;
+  nodePositions: Record<string, { x: number; y: number }>;
+  layoutVersion?: number;
   lastUpdated: string;
 }
 
