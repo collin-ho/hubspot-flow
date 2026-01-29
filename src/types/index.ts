@@ -30,9 +30,22 @@ export interface StageNodeData extends Record<string, unknown> {
   color?: string;
 }
 
+export interface MiniNodeData extends Record<string, unknown> {
+  label: string;
+  owner?: string;
+  color?: string;
+}
+
+export interface SpineNodeData extends Record<string, unknown> {
+  color?: string;
+}
+
 export type FlowNode = Node<FlowNodeData, 'custom'>;
 export type StageNode = Node<StageNodeData, 'stage'>;
-export type AnyFlowNode = FlowNode | StageNode;
+export type MiniNode = Node<MiniNodeData, 'mini'>;
+export type SpineNode = Node<SpineNodeData, 'spine'>;
+export type ContentNode = FlowNode | MiniNode | SpineNode;
+export type AnyFlowNode = FlowNode | StageNode | MiniNode | SpineNode;
 export type FlowEdge = Edge;
 
 export type ViewMode = 'vanillasoft' | 'hubspot';
@@ -49,7 +62,7 @@ export interface ExportData {
   version: string;
   exportedAt: string;
   viewMode: ViewMode;
-  nodes: FlowNode[];
+  nodes: ContentNode[];
   edges: FlowEdge[];
   notes: Record<string, NodeNote[]>;
   statuses: Record<string, NodeStatus>;

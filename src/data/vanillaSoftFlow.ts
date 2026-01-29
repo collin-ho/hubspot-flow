@@ -1,4 +1,4 @@
-import type { FlowNode, FlowEdge, StageNode } from '../types';
+import type { FlowNode, FlowEdge, StageNode, MiniNode, SpineNode } from '../types';
 import type { GroupNodeData } from '../components/GroupNode';
 import type { Node } from '@xyflow/react';
 
@@ -185,7 +185,7 @@ const inGroup = (stageIndex: number, groupY: number, index: number) => ({
 // ============================================
 // CHILD NODES
 // ============================================
-export const vanillaSoftNodes: FlowNode[] = [
+export const vanillaSoftNodes: (FlowNode | MiniNode | SpineNode)[] = [
   // ============================================
   // STAGE: LEAD SOURCES (no groups needed - simple list)
   // ============================================

@@ -1,9 +1,9 @@
-import type { ViewMode, ExportData, FlowNode, FlowEdge, PersistedState } from '../types';
+import type { ViewMode, ExportData, ContentNode, FlowEdge, PersistedState } from '../types';
 
 interface ToolbarProps {
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
-  nodes: FlowNode[];
+  nodes: ContentNode[];
   edges: FlowEdge[];
   persistedState: PersistedState;
 }
