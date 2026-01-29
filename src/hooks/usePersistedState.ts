@@ -16,14 +16,11 @@ function loadState(): PersistedState {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      // Clear positions if layout version changed (keeps notes/statuses)
-      const storedVersion = parsed.layoutVersion || 1;
-      const shouldResetPositions = storedVersion < LAYOUT_VERSION;
-
+      // Always use default positions from code - never persist dragged positions
       return {
         ...defaultState,
         ...parsed,
-        nodePositions: shouldResetPositions ? {} : (parsed.nodePositions || {}),
+        nodePositions: {},
         layoutVersion: LAYOUT_VERSION,
       };
     }
@@ -35,8 +32,11 @@ function loadState(): PersistedState {
 
 function saveState(state: PersistedState): void {
   try {
+    // Don't persist positions - always use defaults from code
+    const { nodePositions, ...stateWithoutPositions } = state;
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      ...state,
+      ...stateWithoutPositions,
+      nodePositions: {},
       lastUpdated: new Date().toISOString(),
     }));
   } catch (e) {
